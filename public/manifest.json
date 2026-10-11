@@ -1,0 +1,19 @@
+{
+  "background_color": "#ffffff",
+  "description": "An AI chatbot app",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Study Buddy AI",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "AI Chatbot",
+  "start_url": "/",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/logo-512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ]
+}
