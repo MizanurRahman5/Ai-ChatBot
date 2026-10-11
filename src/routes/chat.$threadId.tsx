@@ -3,7 +3,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AlertCircle, FileText, Loader2, Menu, Plus, Trash2, Upload, X, Eraser } from "lucide-react";
+import { AlertCircle, FileText, Loader2, Menu, Plus, Trash2, Upload, X, Eraser, Image as ImageIcon } from "lucide-react";
 import logo from "@/assets/logo.png";
 import {
   Conversation,
@@ -228,6 +228,9 @@ const SUGGESTIONS = [
 
 function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: UIMessage[]; onMenu: () => void }) {
   const [input, setInput] = useState("");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
   const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat" }), []);
   const { messages, sendMessage, status, error, stop, setMessages, clearError } = useChat({
     id: threadId,
@@ -250,17 +253,55 @@ function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: 
     }
   }, [messages, status, threadId]);
 
-  const send = (text: string) => {
-    const q = text.trim();
-    if (!q || busy) return;
-    const all = readDocs().flatMap((d) => d.chunks.map((t) => ({ source: d.name, text: t })));
-    const context = retrieve(q, all, 5);
-    clearError();
-    sendMessage({ text: q }, { body: { context } });
-    setInput("");
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select an image file.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const onSubmit = (m: PromptInputMessage) => send(m.text ?? "");
+  const send = (text: string) => {
+    const q = text.trim();
+    if (!q && !selectedImage) return;
+    if (busy) return;
+
+    const all = readDocs().flatMap((d) => d.chunks.map((t) => ({ source: d.name, text: t })));
+    const context = retrieve(q || "Describe this image", all, 5);
+    clearError();
+
+    const files = selectedImage
+      ? [
+          {
+            type: "file",
+            filename: "image.png",
+            mediaType: selectedImage.split(";")[0].replace("data:", ""),
+            url: selectedImage,
+          },
+        ]
+      : undefined;
+
+    sendMessage(
+      {
+        text: q || "Describe this image",
+        files,
+      },
+      { body: { context } }
+    );
+
+    setInput("");
+    setSelectedImage(null);
+    if (imageInputRef.current) imageInputRef.current.value = "";
+  };
+
+  const onSubmit = (m: PromptInputMessage) => send(m.text || "");
 
   return (
     <>
@@ -274,7 +315,7 @@ function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: 
               <span className="size-1.5 rounded-full bg-primary" /> Using {docs.length} document{docs.length > 1 ? "s" : ""} as knowledge
             </span>
           ) : (
-            "General CSE mode — upload PDFs to ground answers"
+            "General CSE mode — upload PDFs or images to ground answers"
           )}
         </div>
         <Button
@@ -315,15 +356,23 @@ function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: 
             messages.map((m) => (
               <Message from={m.role} key={m.id}>
                 <MessageContent className="group-[.is-user]:bg-primary group-[.is-user]:text-primary-foreground">
-                  {m.parts.map((p, i) =>
-                    p.type === "text" ? (
-                      m.role === "assistant" ? (
+                  {m.parts.map((p, i) => {
+                    if (p.type === "text") {
+                      return m.role === "assistant" ? (
                         <MessageResponse key={i}>{p.text}</MessageResponse>
                       ) : (
                         <p key={i} className="whitespace-pre-wrap">{p.text}</p>
-                      )
-                    ) : null,
-                  )}
+                      );
+                    }
+                    if (p.type === "file" && p.mediaType?.startsWith("image/")) {
+                      return (
+                        <div key={i} className="mb-2 overflow-hidden rounded-md">
+                          <img src={p.url} alt="Uploaded attachment" className="max-h-48 rounded object-cover" />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
                 </MessageContent>
               </Message>
             ))
@@ -346,19 +395,71 @@ function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: 
       </Conversation>
 
       <div className="mx-auto w-full max-w-3xl px-3 pb-4 md:px-4">
+        {selectedImage && (
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-border bg-card p-2 w-fit">
+            <img src={selectedImage} alt="Preview" className="size-12 rounded object-cover" />
+            <span className="text-xs text-muted-foreground">Image attached</span>
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedImage(null);
+                if (imageInputRef.current) imageInputRef.current.value = "";
+              }}
+              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="size-4" />
+            </button>
+          </div>
+        )}
+
+        <input
+          ref={imageInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageChange}
+        />
+
         <PromptInput onSubmit={onSubmit}>
           <PromptInputTextarea
             ref={textareaRef}
             autoFocus
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a CSE or programming question…"
+            onPaste={(e) => {
+              const items = e.clipboardData?.items;
+              if (!items) return;
+              for (const item of items) {
+                if (item.type.startsWith("image/")) {
+                  const file = item.getAsFile();
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      setSelectedImage(reader.result as string);
+                    };
+                    reader.readAsDataURL(file);
+                    e.preventDefault();
+                    break;
+                  }
+                }
+              }
+            }}
+            placeholder="Ask a CSE question or attach an image…"
           />
           <PromptInputFooter>
             <PromptInputTools>
-              <span className="px-2 text-xs text-muted-foreground">Enter to send · Shift+Enter for new line</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => imageInputRef.current?.click()}
+              >
+                <ImageIcon className="size-4" />
+                <span>Upload image</span>
+              </Button>
             </PromptInputTools>
-            <PromptInputSubmit status={status} onStop={stop} disabled={!busy && !input.trim()} />
+            <PromptInputSubmit status={status} onStop={stop} disabled={!busy && !input.trim() && !selectedImage} />
           </PromptInputFooter>
         </PromptInput>
       </div>
