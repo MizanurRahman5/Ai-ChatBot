@@ -12,9 +12,11 @@ Style: clear, concise, well-structured Markdown. Use fenced code blocks with lan
   const docs = context
     .map((c, i) => `[${i + 1}] (from "${c.source}")\n${c.text}`)
     .join("\n\n---\n\n");
+
   return `${base}
 
-The user uploaded study materials. Relevant excerpts are below. Base your answer on them when they are relevant and cite them like [1], [2]. If the excerpts don't cover the question, say so briefly and answer from general knowledge.
+The user has uploaded study materials/PDF documents to their knowledge base. Relevant excerpts from these documents are provided below.
+When the user asks about their uploaded document or PDF (e.g., "এই পিডিএফটা কি নিয়ে?", "আমার আপলোড করা ফাইলটা কিসের?"), use these excerpts to summarize or answer their question. Always acknowledge the document content and cite them like [1], [2] when appropriate. Never claim that you cannot read or see the uploaded PDF.
 
 <excerpts>
 ${docs}

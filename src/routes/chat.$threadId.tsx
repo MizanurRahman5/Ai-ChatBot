@@ -273,8 +273,17 @@ function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: 
     if (!q && !selectedImage) return;
     if (busy) return;
 
-    const all = readDocs().flatMap((d) => d.chunks.map((t) => ({ source: d.name, text: t })));
-    const context = retrieve(q || "Describe this image", all, 5);
+    // ১. ফাইল থেকে টেক্সট রিড করা
+    const docs = readDocs() || [];
+    const all = docs.flatMap((d) => (d.chunks || []).map((t) => ({ source: d.name, text: t })));
+
+    // ২. সেফ রিট্রিভাল (ফাইল থাকুক বা না থাকুক crash করবে না)
+    let finalContext: { source: string; text: string }[] = [];
+    if (all.length > 0) {
+      const retrieved = retrieve(q || "Describe this image", all, 5);
+      finalContext = retrieved && retrieved.length > 0 ? retrieved : all.slice(0, 5);
+    }
+
     clearError();
 
     const files = selectedImage
@@ -293,7 +302,7 @@ function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: 
         text: q || "Describe this image",
         files,
       },
-      { body: { context } }
+      { body: { context: finalContext } }
     );
 
     setInput("");
