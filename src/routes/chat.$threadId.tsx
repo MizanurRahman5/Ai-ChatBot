@@ -467,6 +467,15 @@ function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: 
                 <ImageIcon className="size-4" />
                 <span>Upload image</span>
               </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs text-emerald-500 hover:text-emerald-400"
+                onClick={() => send("Generate a 4-question MCQ quiz based on the uploaded document or current topic.")}
+              >
+                ✨ <span>Generate Quiz</span>
+              </Button>
             </PromptInputTools>
             <PromptInputSubmit status={status} onStop={stop} disabled={!busy && !input.trim() && !selectedImage} />
           </PromptInputFooter>
