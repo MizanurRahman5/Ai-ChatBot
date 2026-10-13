@@ -220,10 +220,10 @@ function Sidebar({ activeId, onClose }: { activeId: string; onClose: () => void 
 }
 
 const SUGGESTIONS = [
-  "Explain Big-O of quicksort vs mergesort",
-  "Write a linked list reversal in C++",
-  "What is a deadlock and how to prevent it?",
-  "Summarize my uploaded notes",
+  "Misty, আজ কি দিয়ে বাজিমাত করবে বলো? 😎",
+  "কোডের কোনো বাগ থাকলে নিয়ে আসো, উড়াইয়া দেই! 🐛⚡",
+  "আমার আপলোড করা ফাইল থেকে একটা কঠিন কুইজ বানাও তো!",
+  "আমাকে চমৎকার একটা প্রোগ্রামিং জোক শোনাও 🦉",
 ];
 
 function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: UIMessage[]; onMenu: () => void }) {
@@ -344,10 +344,12 @@ function ChatWindow({ threadId, initial, onMenu }: { threadId: string; initial: 
         <ConversationContent className="mx-auto w-full max-w-3xl px-4 py-6">
           {messages.length === 0 ? (
             <ConversationEmptyState>
-              <img src={logo} alt="" width={72} height={72} className="size-18" />
-              <h1 className="font-display text-2xl font-semibold">What are we learning today?</h1>
+              <img src={logo} alt="CodeOwl" width={72} height={72} className="size-18 animate-bounce" />
+              <h1 className="font-display text-2xl font-semibold">
+                Hey Misty! Boss is back! 😎✨
+              </h1>
               <p className="max-w-md text-sm text-muted-foreground">
-                Ask about algorithms, data structures, OS, networks, databases or any code.
+                আমি তোমার পার্সোনাল CodeOwl! আজ আমরা কী নিয়ে ধামাকা করব বলো—কোনো কোড ডিবাগ করব, নাকি মজার কোনো কুইজ খেলব? 🦉🚀
               </p>
               <div className="mt-4 grid w-full max-w-lg gap-2 sm:grid-cols-2">
                 {SUGGESTIONS.map((s) => (
